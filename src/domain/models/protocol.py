@@ -1,15 +1,23 @@
+# Python standard library
 from __future__ import annotations
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, Text, Date, LargeBinary, ForeignKey, func
 from datetime import date
-from ..database import Base
+from typing import Optional, TYPE_CHECKING
 
+
+# SQLAlchemy
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import (
+    Integer, String, Text, Date, LargeBinary, 
+    ForeignKey, func, Column, DateTime
+)
+
+# Internal - database
+from ..database import Base
 
 # The models reference each other (e.g., Sample ↔ LogTemperature), which would cause
 # circular imports if they were imported directly. TYPE_CHECKING is False at runtime
 # (the imports are not executed), but True for the type checker, so the IDE
 # resolves the types correctly without breaking the application.
-from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from .association_tables import sample_protocol
     from .staff import Staff
@@ -35,3 +43,10 @@ class Protocol(Base):
     staff: Mapped[Optional["Staff"]] = relationship(back_populates="protocols")
     # sample_protocol relationship
     samples: Mapped[list["Sample"]] = relationship(secondary="sample_protocol", back_populates="protocols")
+    
+    last_update = Column(
+        DateTime, 
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )

@@ -1,13 +1,23 @@
+# Python standard library
 from __future__ import annotations
+from datetime import datetime
+from typing import Optional, TYPE_CHECKING
+
+
+# SQLAlchemy
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Numeric, Enum, ForeignKey, CheckConstraint
+from sqlalchemy import (
+    Integer, Numeric, Enum, ForeignKey, 
+    CheckConstraint, Column, func, DateTime
+)
+
+# Internal - database
 from ..database import Base
 
 # The models reference each other (e.g., Sample ↔ LogTemperature), which would cause
 # circular imports if they were imported directly. TYPE_CHECKING is False at runtime
 # (the imports are not executed), but True for the type checker, so the IDE
 # resolves the types correctly without breaking the application.
-from typing import Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from .sample import Sample
 
@@ -28,3 +38,10 @@ class QualityControl(Base):
     #FK - quality_control - sample
     id_sample: Mapped[int] = mapped_column(ForeignKey("sample.id", ondelete="CASCADE"), nullable=False, unique=True)
     sample: Mapped["Sample"] = relationship(back_populates="quality_control", uselist=False)
+    
+    last_update = Column(
+        DateTime, 
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )

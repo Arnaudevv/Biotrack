@@ -1,14 +1,21 @@
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String, Numeric, Date, Enum, ForeignKey, CheckConstraint
+# Python standard library
 from datetime import date
-from ..database import Base
+from typing import TYPE_CHECKING
 
+# SQLAlchemy
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import (
+    Integer, String, Numeric, Date, Enum, ForeignKey, 
+    CheckConstraint, func, Column, DateTime
+)
+
+# Internal - database
+from ..database import Base
 
 # The models reference each other (e.g., Sample ↔ LogTemperature), which would cause
 # circular imports if they were imported directly. TYPE_CHECKING is False at runtime
 # (the imports are not executed), but True for the type checker, so the IDE
 # resolves the types correctly without breaking the application.
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .patient import Patient
     from .sample_type import SampleType
@@ -53,3 +60,10 @@ class Sample(Base):
     protocols: Mapped[list["Protocol"]] = relationship(secondary="sample_protocol", back_populates="samples")
     # research_project_samples relationship
     research_projects: Mapped[list["ResearchProject"]] = relationship(secondary="research_project_samples", back_populates="samples")
+    
+    last_update = Column(
+        DateTime, 
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )

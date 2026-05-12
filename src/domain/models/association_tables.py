@@ -1,6 +1,8 @@
+# SQLAlchemy
 from sqlalchemy import Table, Column, ForeignKey
-from ..database import Base
 
+# Internal - database
+from ..database import Base
 
 # === PROTOCOLS PER SAMPLE (N:M) ===
 # Since it only has foreign keys and no attributes, it should NOT be a class

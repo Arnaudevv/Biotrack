@@ -44,7 +44,7 @@ class StaffRepository(BaseRepository[Staff, int]):
         )
 
         if not staff:
-            raise ValueError(f"Staff [{Staff.code}] not found")
+            raise ValueError(f"Staff [{code}] not found")
 
         if not project:
             raise ValueError(f"Project [{project_name}] not found")
