@@ -1,0 +1,211 @@
+# Información / Apuntes
+# > __tablename__="table"
+# Si la tabla YA existe en la DB -> SQLAlchemy la MAPEA (la conecta con la classe)
+# Si la tabla NO existe en la DB -> SQLAlchemy la CREA cuando haga create_all()
+
+# id: Mapped[int] = mapped_column(Integer, primary_key=True)
+# id              → nombre de la columna (igual que en SQL)
+# Mapped[int]     → le dice a Python "esto será un entero"
+# mapped_column() → define cómo es la columna en la DB
+# Integer         → el tipo de dato en la DB
+# primary_key=True → es la clave primaria
+
+#Autoincrements > Si una columna es Integer y PK, SQLAlchemy la hace implícitamente autoincremental
+#Para quitar el autoincrement > autoincrement=False
+
+# // =========== MODELOS =========== //
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import Integer, String, Text, Boolean, Date, DateTime, Numeric, LargeBinary, Enum, ForeignKey, func, CheckConstraint, UniqueConstraint, Table, Column
+from datetime import date, datetime
+from typing import Optional
+from .database import Base
+
+
+# === PROTOCOLOS POR MUESTRA (N:M) ===
+# Como solo tiene FK y no atributos, no debe ser una classe,ç
+# python lee de arriba a abajo, por lo tanto hay que definir la tabla antes de que las classes la usen
+# Relationships ->
+#   N:1 → Sample
+#   N:1 → Protocol
+sample_protocol = Table (
+    "sample_protocol", Base.metadata,
+    Column("id_protocol", ForeignKey("protocol.id", ondelete="CASCADE"), primary_key=True),
+    Column("id_sample", ForeignKey("sample.id", ondelete="CASCADE"), primary_key=True)
+)
+# ==== PACIENTE ====
+# Relationships ->
+#   1:N → Sample (un paciente tiene muchas muestras)
+
+class Patient(Base):
+    __tablename__="patient" 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True) 
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    lastname: Mapped[str] = mapped_column(String(100), nullable=False)
+    birth_date: Mapped[date] = mapped_column(Date, nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    registration_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    # Sample relationship
+    samples: Mapped[list["Sample"]] = relationship(back_populates="patient")
+
+# === TRABAJADORES ====
+# Relationships ->
+#   1:N → Protocol (un trabajador ha revisado muchos protocolos)
+#   N:M → ResearchProject a través de ProjectTeam (un trabajador puede estar en muchos proyectos)
+class Staff(Base):
+    __tablename__="staff"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True) 
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    lastname: Mapped[str] = mapped_column(String(100), nullable=False)
+    role: Mapped[str] = mapped_column(Enum('researcher','analyst','technician','manager','administrator'), nullable=False)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Protocol relationship
+    protocols: Mapped[list["Protocol"]] = relationship(back_populates="staff")
+    research_projects: Mapped[list["ResearchProject"]] = relationship(secondary="project_team", back_populates="staff_members")
+    
+# === TIPO MUESTRA ===
+# Relationships ->
+#   1:N → Sample (un tipo puede aplicarse a muchas muestras)
+class SampleType(Base):
+    __tablename__="sample_type"
+    id:  Mapped[int] = mapped_column(Integer, primary_key=True)
+    type_name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    # Sample relationship
+    samples: Mapped[list["Sample"]] = relationship(back_populates="sample_type")
+
+# === CONTENEDOR MUSTRA ===
+# Relationships ->
+#   1:N → Sample (un contenedor puede almacenar muchas muestras)
+class Container(Base):
+    __tablename__="container"
+    id:  Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True) 
+    type_name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    # Sample relationship
+    samples: Mapped[list["Sample"]] = relationship(back_populates="container")
+
+# === PROYECTO DE INVESTIGACIÓN ===
+# Relationships ->
+#   N:M → Sample a través de ResearchProjectSamples (un proyecto tiene muchas muestras y viceversa)
+#   N:M → Staff a través de ProjectTeam (un proyecto tiene muchos trabajadores y viceversa)
+class  ResearchProject(Base):
+    __tablename__="research_project"
+    id:  Mapped[int] = mapped_column(Integer, primary_key=True)
+    project_name: Mapped[str] = mapped_column(String(200), nullable=False, unique=True)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # research_project_samples relationship
+    samples: Mapped[list["Sample"]] = relationship(secondary="research_project_samples", back_populates="research_projects")
+    # project_team relationship
+    staff_members: Mapped[list["Staff"]] = relationship(secondary="project_team", back_populates="research_projects")
+
+# === MUESTRA ===
+# Relationships ->
+#   N:1 → Patient (una muestra pertenece a un paciente)
+#   N:1 → SampleType (una muestra tiene un tipo)
+#   N:1 → Container (una muestra está en un contenedor)
+#   1:N → LogTemperature (una muestra tiene muchos registros de temperatura)
+#   1:1 → QualityControl (una muestra tiene un único control de calidad)
+#   N:M → Protocol a través de SampleProtocol (una muestra puede seguir muchos protocolos)
+#   N:M → ResearchProject a través de ResearchProjectSamples (una muestra puede estar en muchos proyectos)
+class Sample(Base):
+    __tablename__="sample"
+    __table_args__ = (CheckConstraint("volume > 0", name="check_volume_positive"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    volume: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    extraction_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(Enum('pending','in_process','analyzed','rejected','archived'), nullable=False, default='pending')
+    # FK: sample - patient
+    id_patient: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False)
+    patient: Mapped["Patient"] = relationship(back_populates="samples") 
+    # FK: sample - sample type
+    id_sample_type: Mapped[int] = mapped_column(ForeignKey("sample_type.id"), nullable=False)
+    sample_type: Mapped["SampleType"] = relationship(back_populates="samples")
+    #FK: sample - container
+    id_container: Mapped[int] = mapped_column(ForeignKey("container.id"), nullable=False)
+    container: Mapped["Container"] = relationship(back_populates="samples")
+    # log_temperatures relationship
+    log_temperatures: Mapped[list["LogTemperature"]] = relationship(back_populates="sample")
+    # quality_control relationship
+    quality_control: Mapped["QualityControl"] = relationship(back_populates="sample", uselist=False)
+    # sample_protocol relationship
+    protocols: Mapped[list["Protocol"]] = relationship(secondary=sample_protocol, back_populates="samples")
+    # research_project_samples relationship
+    research_projects: Mapped[list["ResearchProject"]] = relationship(secondary="research_project_samples", back_populates="samples")
+
+
+# === PROTOCOLO ===
+# Relationships ->
+#   N:1 → Staff (un protocolo es revisado por un trabajador)
+#   N:M → Sample a través de SampleProtocol (un protocolo puede aplicarse a muchas muestras)
+class Protocol(Base):
+    __tablename__="protocol"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    protocol_file: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
+    file_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    creation_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.now())
+    last_review_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    # FK: protocol - staff
+    reviewed_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("staff.id", ondelete="SET NULL"), nullable=True)
+    staff: Mapped[Optional["Staff"]] = relationship(back_populates="protocols")
+    # sample_protocol relationship
+    samples: Mapped[list["Sample"]] = relationship(secondary=sample_protocol, back_populates="protocols")
+
+# === TEMPERATURAS REGISTRADAS ===
+# Relationships ->
+#   N:1 → Sample (un registro de temperatura pertenece a una muestra)
+class LogTemperature(Base):
+    __tablename__="log_temperature"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    reading_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+    temperature: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    #FK log_temp - sample
+    id_sample: Mapped[int] = mapped_column(ForeignKey("sample.id", ondelete="CASCADE"), nullable=False)
+    sample: Mapped["Sample"] = relationship(back_populates="log_temperatures")
+
+# ===  CONTROL DE CALIDAD ===
+# Relationships ->
+#   1:1 → Sample (un control de calidad pertenece a una única muestra)
+class QualityControl(Base):
+    __tablename__="quality_control"
+    __table_args__ = (
+        CheckConstraint("purity BETWEEN 0 AND 100", name="check_purity_range"),
+        CheckConstraint("concentration >= 0", name="check_concentration_positive")
+    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    purity: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
+    concentration: Mapped[Optional[float]] = mapped_column(Numeric(10, 4), nullable=True)
+    result: Mapped[str] = mapped_column(Enum('approved', 'rejected', 'pending_review'), nullable=False)
+    #FK - quality_control - sample
+    id_sample: Mapped[int] = mapped_column(ForeignKey("sample.id", ondelete="CASCADE"), nullable=False, unique=True)
+    sample: Mapped["Sample"] = relationship(back_populates="quality_control", uselist=False)
+
+# === MUESTRAS EN PROYECTO DE INVESTIGACION ===
+# Relationships ->
+#   N:1 → Sample
+#   N:1 → ResearchProject
+class ResearchProjectSamples(Base):
+    __tablename__="research_project_samples"
+    __table_args__ = (UniqueConstraint("id_sample", "id_project", name="uq_sample_project"),)
+    sample_assignment_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.now())
+    id_sample: Mapped[int] = mapped_column(ForeignKey("sample.id", ondelete="CASCADE"), primary_key=True)
+    id_project: Mapped[int] = mapped_column(ForeignKey("research_project.id", ondelete="CASCADE"), primary_key=True)
+
+# === EQUIPO DE PROYECTO (staff - research project)
+# Relationships ->
+#   N:1 → ResearchProject
+#   N:1 → Staff
+class ProjectTeam(Base):
+    __tablename__="project_team"
+    id_project: Mapped[int] = mapped_column(ForeignKey("research_project.id", ondelete="CASCADE"), primary_key=True)
+    id_staff: Mapped[int] = mapped_column(ForeignKey("staff.id", ondelete="CASCADE"), primary_key=True)
+    role: Mapped[str] = mapped_column(Enum('principal_investigator','co_investigator','analyst','technician','assistant'), nullable=False)
+    
+    # added (04/05/2026) -> this allows to get ResearchProject and Staff Objects using repositoryies
+    project: Mapped["ResearchProject"] = relationship(overlaps="research_projects,staff_members")
+    staff: Mapped["Staff"] = relationship(overlaps="research_projects,staff_members")

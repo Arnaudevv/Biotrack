@@ -1,0 +1,76 @@
+# =============================================================================
+# PROJECT MANIFEST & TECHNICAL SPECIFICATION: BIOTRACK
+# =============================================================================
+# This file serves as the official declaration of the BioTrack project. 
+# Its primary objective is to define the project's identity (metadata, 
+# authorship, and versioning) and its execution requirements (dependencies).
+#
+# Additionally, it enables an "editable mode" installation, which is the 
+# standard method to manage internal paths. This eliminates the need for 
+# manual path modifications (sys.path.append) across the codebase.
+#
+# INSTALLATION CHARACTERISTICS:
+# Running 'pip install -e .' at the project root links the 'src/' directory 
+# to the active virtual environment. This configuration grants global 
+# visibility to the 'domain' package, allowing direct imports from any 
+# location within the project (notebooks, tests, or scripts).
+#
+#   Usage example: from domain.models.patient import Patient
+#
+# Due to the editable mode, any modifications made to the source code within 
+# 'src/' take immediate effect without requiring additional reinstallations.
+#
+# UNINSTALLATION PROCEDURE:
+# To revert the configuration and remove the package link from the environment:
+# 1. Execute 'pip uninstall biotrack' in the terminal.
+# 2. Delete this file (pyproject.toml).
+# 3. Delete the metadata directory located at 'src/biotrack.egg-info'.
+#
+# Uninstallation only affects the package registration within the virtual 
+# environment; the source code in 'src/' remains untouched.
+# =============================================================================
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "biotrack"
+version = "0.1.0"
+description = "BioTrack management system with domain-driven architecture and repositories"
+authors = [
+    {name = "BioTrack Development", email = "admin@biotrack.com"}
+]
+dependencies = [ 
+    "SQLAlchemy", 
+    "alembic", 
+    "psycopg2-binary", 
+    "python-dotenv", 
+    "requests"
+]
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+# Source code location for packaging.
+# Defines 'src' as the root directory where the 'domain' package resides.
+where = ["src"]
+
+
+
+
+# -----------------------------------------------------------------------------
+# INSTALLATION METADATA (biotrack.egg-info):
+#    Upon executing the editable installation, the 'src/biotrack.egg-info' 
+#    directory is automatically generated. This directory serves as the 
+#    technical registry of the package within the virtual environment and 
+#    contains:
+#
+#    - PKG-INFO: General metadata (name, version, description).
+#    - SOURCES.txt: An index of all files comprising the package.
+#    - dependency_links.txt: Information regarding external dependencies.
+#    - requires.txt: List of libraries required for execution.
+#    - top_level.txt: Identifies 'domain' as the root package for the system.
+#
+#    This folder is necessary for Python to maintain the active link between 
+#    the environment and the source code. It should not be manually modified.
+# -----------------------------------------------------------------------------

@@ -1,0 +1,272 @@
+# Estructura:
+#   BaseRepository[T]         → operaciones CRUD comunes a TODAS las tablas
+#   ├── PatientRepository     → consultas específicas de Patient
+#   ├── StaffRepository       → consultas específicas de Staff
+#   ├── SampleRepository      → consultas específicas de Sample
+#   ├── ProtocolRepository    → consultas específicas de Protocol
+#   └── ResearchProjectRepository → consultas específicas de ResearchProject
+# ─────────────────────────────────────────────────────────────────
+
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import select
+from .models import (
+    Patient,
+    Staff,
+    Usuario,
+    SampleType,
+    Container,
+    ResearchProject,
+    Sample,
+    Protocol,
+    LogTemperature,
+    QualityControl,
+    ResearchProjectSamples,
+    ProjectTeam
+)
+
+# T representa cualquier clase de modelo (Patient, Staff, Sample...)
+# Es un "comodín de tipo" que le dice a Python:
+# "este repositorio funciona con cualquier modelo, no solo uno concreto"
+from typing import Generic, TypeVar, Optional
+T = TypeVar("T")
+
+
+
+# ══════════════════════════════════════════════════════════════════
+# BASE REPOSITORY
+# Operaciones CRUD que funcionan igual para CUALQUIER tabla.
+# Todos los repositorios específicos heredan de aquí.
+# ══════════════════════════════════════════════════════════════════
+
+class BaseRepository(Generic[T]):
+    """
+    Repositorio base con las operaciones comunes a todas las tablas.
+
+    Recibe dos cosas al crearse:
+        - session: la sesión activa de SQLAlchemy (la "conversación" con la DB)
+        - model:   la clase del modelo con el que trabaja (Patient, Staff...)
+
+    Uso:
+        with Session() as session:
+            repo = PatientRepository(session)
+    """
+
+    def __init__(self, session: Session, model: type[T]):
+        self.session = session
+        self.model = model
+
+    # ── Leer ──────────────────────────────────────────────────────
+
+    def get_by_id(self, id: int) -> Optional[T]:
+        """
+        Busca un registro por su clave primaria (id).
+        
+        Devuelve objeto si existe  -  Devuelve None si no existe
+
+        Ejemplo  ->  patient = repo.get_by_id(3)
+        """
+        return self.session.get(self.model, id)
+
+    def get_all(self) -> list[T]:
+        """
+        Devuelve todos los registros de la tabla.
+
+        Ejemplo:
+            patients = repo.get_all()
+        """
+        return self.session.scalars(select(self.model)).all()
+
+    # ── Escribir ──────────────────────────────────────────────────
+
+    def save(self, entity: T) -> T:
+        """
+        Guarda un objeto nuevo o actualiza uno existente.
+
+        Ejemplo:
+            patient = Patient(code="P010", name="Ana", ...)
+            patient = repo.save(patient)
+            print(patient.id)  # ya tiene el id de la DB
+        """
+        self.session.add(entity)
+        self.session.commit()
+        self.session.refresh(entity)
+        return entity
+
+    def delete(self, entity: T) -> None:
+        """
+        Elimina un registro de la DB.
+
+        Ejemplo:
+            patient = repo.get_by_id(3)
+            repo.delete(patient)
+        """
+        self.session.delete(entity)
+        self.session.commit()
+
+    def count(self) -> int:
+        """
+        Cuenta cuántos registros hay en la tabla.
+
+        Ejemplo:
+            total = repo.count()
+            print(f"Hay {total} pacientes")
+        """
+        return self.session.scalars(select(self.model)).all().__len__()
+
+
+# ══════════════════════════════════════════════════════════════════
+# PATIENT REPOSITORY
+# ══════════════════════════════════════════════════════════════════
+class PatientRepository(BaseRepository[Patient]):
+    """
+    Repositorio para la tabla Patient.
+    Hereda get_by_id, get_all, save, delete y count del BaseRepository.
+    Añade métodos propios de pacientes.
+    """
+
+    def __init__(self, session: Session):
+        # Le decimos al padre que el modelo con el que trabajamos es Patient
+        super().__init__(session, Patient)
+
+    def get_by_code(self, code: str) -> Optional[Patient]:
+        """
+        Busca un paciente por su código único (ej: "P001").
+        Devuelve None si no existe.
+
+        Ejemplo  ->  patient = repo.get_by_code("P001")
+        """
+        stmt = select(Patient).where(Patient.code == code)
+        return self.session.scalar(stmt)
+
+    def get_active(self) -> list[Patient]:
+        """
+        Devuelve todos los pacientes con active=True.
+
+        Ejemplo -> activos = repo.get_active()
+        """
+        stmt = select(Patient).where(Patient.active == True).order_by(Patient.lastname)
+        return self.session.scalars(stmt).all()
+
+    def get_with_samples(self, code: str) -> Optional[Patient]:
+        """
+        Busca un paciente Y carga sus muestras en la misma consulta.
+        Así puedes acceder a patient.samples fuera de la sesión sin error.
+
+        Sin este método, acceder a patient.samples fuera del 'with Session()'
+        lanzaría DetachedInstanceError.
+
+        Ejemplo:
+            patient = repo.get_with_samples("P001")
+            for sample in patient.samples:
+                print(sample.code)
+        """
+        stmt = (
+            select(Patient)
+            .where(Patient.code == code)
+            .options(selectinload(Patient.samples))  # carga las muestras ya
+        )
+        return self.session.scalar(stmt)
+    
+# ══════════════════════════════════════════════════════════════════
+# RESEARCH PROJECT REPOSITORY
+# ══════════════════════════════════════════════════════════════════
+
+class StaffRepository(BaseRepository[Staff]):
+    """Repositorio para la tabla Staff (trabajadores)."""   
+    def __init__(self, session : Session):
+        super().__init__(session, Staff)
+
+    def get_by_code(self, code: str) -> Optional[Staff]:
+        """Busca un trabajador por su código único (ej: "S001")
+        
+        Ejemplo  -> staff = repo.get_by_code("S001")
+        """
+        stmt = select(Staff).where(Staff.code == code)
+        return self.session.scalar(stmt)
+    
+    def add_to_research_project(self, code: str, project_name: str, role: str):           
+        staff = self.session.scalar(select(Staff).where(Staff.code == code))
+
+        project = self.session.scalar(
+            select(ResearchProject)
+            .where((ResearchProject.project_name) == project_name)
+        )
+
+        if not staff or not project:
+            missing = "Staff" if not staff else "Proyecto"
+            raise ValueError(f"{missing} no encontrado ({code} / {project_name})")
+
+        new_assignment = ProjectTeam(
+            id_staff=staff.id,
+            id_project=project.id,
+            role=role.strip().lower()
+        )
+
+        self.session.add(new_assignment)
+        try:
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+    
+    def get_research_project_with_roles(self, code: str) -> Optional[ProjectTeam]:
+        """
+        Retrieves research project assignments for a given staff code.
+
+        Returns a project team object if found, otherwise None.
+
+        Example:
+            assignments = repo.get_staff_projects_with_roles("STF-001")
+            for assignment in assignments:
+                print(f"Project: {assignment.project.project_name}, Role: {assignment.role}")
+        """
+        stmt = (
+            select(ProjectTeam)
+            .join(Staff, Staff.id == ProjectTeam.id_staff)
+            .where(Staff.code == code)
+        )
+
+        return list(self.session.scalars(stmt).all())
+
+# ══════════════════════════════════════════════════════════════════
+# RESEARCH PROJECT REPOSITORY
+# ══════════════════════════════════════════════════════════════════
+
+class ResearchProjectRepository(BaseRepository[ResearchProject]):
+    """
+    Repositorio para la tabla ResearchProject.
+    """
+
+    def __init__(self, session: Session):
+        super().__init__(session, ResearchProject)
+
+    def get_by_name(self, name: str) -> Optional[ResearchProject]:
+        """
+        Busca un proyecto por su nombre exacto.
+
+        Ejemplo:
+            project = repo.get_by_name("Estudio Oncológico Alpha")
+        """
+        stmt = select(ResearchProject).where(ResearchProject.project_name == name)
+        return self.session.scalar(stmt)
+
+    def get_with_team(self, project_id: int) -> Optional[ResearchProject]:
+        """
+        Busca un proyecto Y carga su equipo (staff) y sus muestras.
+
+        Ejemplo:
+            project = repo.get_with_team(1)
+            for member in project.staff_members:
+                print(member.name, member.role)
+            for sample in project.samples:
+                print(sample.code)
+        """
+        stmt = (
+            select(ResearchProject)
+            .where(ResearchProject.id == project_id)
+            .options(
+                selectinload(ResearchProject.staff_members),
+                selectinload(ResearchProject.samples),
+            )
+        )
+        return self.session.scalar(stmt)
