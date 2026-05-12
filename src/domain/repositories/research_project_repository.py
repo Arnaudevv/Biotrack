@@ -16,7 +16,7 @@ from .base_repository import BaseRepository
 # RESEARCH PROJECT REPOSITORY
 # ══════════════════════════════════════════════════════════════════
 
-class ResearchProjectRepository(BaseRepository[ResearchProject]):
+class ResearchProjectRepository(BaseRepository[ResearchProject, int]):
     """
     Repository for the ResearchProject table.
     """

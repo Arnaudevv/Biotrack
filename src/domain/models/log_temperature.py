@@ -1,6 +1,6 @@
 from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, Numeric, DateTime, ForeignKey, func
+from sqlalchemy import Integer, Numeric, DateTime, ForeignKey, func, Column
 from datetime import datetime
 from ..database import Base
 
@@ -24,3 +24,10 @@ class LogTemperature(Base):
     #FK log_temp - sample
     id_sample: Mapped[int] = mapped_column(ForeignKey("sample.id", ondelete="CASCADE"), nullable=False)
     sample: Mapped["Sample"] = relationship(back_populates="log_temperatures")
+    
+    last_update = Column(
+        DateTime, 
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )

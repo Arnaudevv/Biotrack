@@ -1,5 +1,5 @@
 # Python standard library
-from typing import Generic, TypeVar, Optional
+from typing import Generic, TypeVar, Optional, Type
 
 # SQLAlchemy
 from sqlalchemy.orm import Session
@@ -18,7 +18,7 @@ ID = TypeVar("ID")  # ID type (int, str, ...)
 # All specific repositories inherit from here.
 # ══════════════════════════════════════════════════════════════════
 
-class BaseRepository(Generic[T]):
+class BaseRepository(Generic[T, ID]):
     """
     Base repository with operations common to all tables.
 
@@ -31,13 +31,13 @@ class BaseRepository(Generic[T]):
             repo = PatientRepository(session)
     """
 
-    def __init__(self, session: Session, model: type[T]):
+    def __init__(self, session: Session, model: Type[T]):
         self.session = session
         self.model = model
 
     # ── Read ──────────────────────────────────────────────────────
 
-    def get_by_id(self, id: int) -> Optional[T]:
+    def get_by_id(self, id: ID) -> Optional[T]:
         """
         Finds a record by its primary key (id).
 
@@ -54,7 +54,7 @@ class BaseRepository(Generic[T]):
         Example:
             patients = repo.get_all()
         """
-        return self.session.scalars(select(self.model)).all()
+        return list(self.session.scalars(select(self.model)).all())
 
     # ── Write ─────────────────────────────────────────────────────
 
@@ -68,8 +68,7 @@ class BaseRepository(Generic[T]):
             print(patient.id)  # already has the DB-assigned id
         """
         self.session.add(entity)
-        self.session.commit()
-        self.session.refresh(entity)
+        # Removed commit() and refresh() to delegate transaction management to Unit of Work
         return entity
 
     def delete(self, entity: T) -> None:
@@ -81,7 +80,7 @@ class BaseRepository(Generic[T]):
             repo.delete(patient)
         """
         self.session.delete(entity)
-        self.session.commit()
+        # Removed commit() to delegate transaction management to Unit of Work
 
     def count(self) -> int:
         """
@@ -91,4 +90,4 @@ class BaseRepository(Generic[T]):
             total = repo.count()
             print(f"There are {total} patients")
         """
-        return self.session.scalars(select(self.model)).all().__len__()
+        return len(self.session.scalars(select(self.model)).all())

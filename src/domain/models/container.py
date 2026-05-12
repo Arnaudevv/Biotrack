@@ -1,7 +1,8 @@
 from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Integer, String
+from sqlalchemy import Integer, String, Column, func, datetime
 from ..database import Base
+import datetime
 
 # The models reference each other (e.g., Sample ↔ LogTemperature), which would cause
 # circular imports if they were imported directly. TYPE_CHECKING is False at runtime
@@ -22,3 +23,10 @@ class Container(Base):
     type_name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     # Sample relationship
     samples: Mapped[list["Sample"]] = relationship(back_populates="container")
+    
+    last_update = Column(
+        DateTime, 
+        default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )

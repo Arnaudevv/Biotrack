@@ -16,7 +16,7 @@ from .base_repository import BaseRepository
 # PATIENT REPOSITORY
 # ══════════════════════════════════════════════════════════════════
 
-class PatientRepository(BaseRepository[Patient]):
+class PatientRepository(BaseRepository[Patient, int]):
     """
     Repository for the Patient table.
     Inherits get_by_id, get_all, save, delete and count from BaseRepository.
@@ -44,7 +44,7 @@ class PatientRepository(BaseRepository[Patient]):
         Example -> active = repo.get_active()
         """
         stmt = select(Patient).where(Patient.active == True).order_by(Patient.lastname)
-        return self.session.scalars(stmt).all()
+        return list(self.session.scalars(stmt).all())
 
     def get_with_samples(self, code: str) -> Optional[Patient]:
         """
