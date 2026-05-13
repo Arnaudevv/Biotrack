@@ -4,20 +4,18 @@ from sqlalchemy.orm import sessionmaker, Session
 
 class AbstractUnitOfWork(ABC):
     """
-    El 'Unit of Work' (UoW) se encarga de gestionar una transacción completa.
-    Imaginalo como un sobre: pones todas tus operaciones dentro y, al final,
-    o se envían todas juntas o se rompe el sobre y no se envía nada.
+    Interface for the Unit of Work pattern.
+    Ensures atomicity by managing the transaction lifecycle across multiple repositories.
     """
 
     def __enter__(self):
-        """Inicia el contexto de trabajo (ej. 'with uow:')"""
+        """Initializes the context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
-        Se ejecuta automáticamente al salir del bloque 'with'.
-        Si hubo un error (exc_type no es None), hace rollback.
-        Si todo fue bien, hace commit.
+        Finalizes the transaction context.
+        Performs a rollback if an exception occurred; otherwise, commits the changes.
         """
         if exc_type:
             self.rollback()
@@ -26,30 +24,29 @@ class AbstractUnitOfWork(ABC):
 
     @abstractmethod
     def commit(self) -> None:
-        """Confirma todos los cambios realizados en esta unidad de trabajo."""
+        """Persists all changes made within the current transaction."""
         pass
 
     @abstractmethod
     def rollback(self) -> None:
-        """Cancela todos los cambios si algo salió mal."""
+        """Reverts all changes made during the current transaction."""
         pass
 
 class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
     """
-    Implementación específica de UoW para SQLAlchemy.
-    Maneja la sesión real de la base de datos.
+    SQLAlchemy-specific implementation of the Unit of Work.
+    Manages the lifecycle of a SQLAlchemy Session.
     """
 
     def __init__(self, session: Session):
         self.session = session
 
     def __exit__(self, exc_type, exc_value, traceback):
-        # Primero llamamos al comportamiento base (decidir si commit o rollback)
         try:
             super().__exit__(exc_type, exc_value, traceback)
         finally:
-            # Muy importante: Siempre cerramos la sesión para liberar recursos
-            # pase lo que pase (error o éxito).
+            # Ensure the session is closed to release connection pool resources,
+            # regardless of whether the transaction succeeded or failed.
             self.session.close()
 
     def commit(self) -> None:
@@ -60,14 +57,15 @@ class SqlAlchemyUnitOfWork(AbstractUnitOfWork):
 
 class UnitOfWorkFactory:
     """
-    La Fabrica es el punto de entrada para nuestra aplicación.
-    Configura la conexión una sola vez y nos da 'Unidades de Trabajo' listas para usar.
+    Factory responsible for database engine initialization and session configuration.
+    Acts as the main entry point for creating Unit of Work instances.
     """
 
     def __init__(self, database_url: str):
-        # El motor (engine) es el puente hacia la base de datos (ej. SQLite).
+        # Initialize the database engine with the provided connection string.
         self.engine = create_engine(database_url)
-        # sessionmaker crea una 'clase' de sesión configurada con nuestras reglas.
+        
+        # Configure the session factory with standard defaults for the UoW pattern.
         self.session_factory = sessionmaker(
             bind=self.engine,
             autoflush=False,
@@ -76,5 +74,5 @@ class UnitOfWorkFactory:
         )
 
     def create(self) -> SqlAlchemyUnitOfWork:
-        """Crea una nueva sesión y la envuelve en un Unit of Work."""
+        """Instantiates a new SQLAlchemy session and wraps it in a Unit of Work."""
         return SqlAlchemyUnitOfWork(self.session_factory())

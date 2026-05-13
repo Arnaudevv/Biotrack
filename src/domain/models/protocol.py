@@ -36,7 +36,7 @@ class Protocol(Base):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     protocol_file: Mapped[Optional[bytes]] = mapped_column(LargeBinary, nullable=True)
     file_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    creation_date: Mapped[date] = mapped_column(Date, nullable=False, server_default=func.now())
+    creation_date: Mapped[date] = mapped_column(DateTime, nullable=False, server_default=func.now())
     last_review_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     # FK: protocol - staff
     reviewed_by_id: Mapped[Optional[int]] = mapped_column(ForeignKey("staff.id", ondelete="SET NULL"), nullable=True)

@@ -69,7 +69,7 @@
      "name": "stdout",
      "output_type": "stream",
      "text": [
-      "✅ Configuration loaded: development -> sqlite:///biotrack.db\n",
+      "✅ Configuration loaded: development -> sqlite:///C:\\Users\\Usuario\\Desktop\\biotrack\\data\\biotrack.db\n",
       "✅ ¡Conexión exitosa! Ya puedes usar tus modelos.\n"
      ]
     }
