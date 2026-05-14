@@ -68,7 +68,6 @@ class BaseRepository(Generic[T, ID]):
             print(patient.id)  # already has the DB-assigned id
         """
         self.session.add(entity)
-        # Removed commit() and refresh() to delegate transaction management to Unit of Work
         return entity
 
     def delete(self, entity: T) -> None:
@@ -80,7 +79,6 @@ class BaseRepository(Generic[T, ID]):
             repo.delete(patient)
         """
         self.session.delete(entity)
-        # Removed commit() to delegate transaction management to Unit of Work
 
     def count(self) -> int:
         """

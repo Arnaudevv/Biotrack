@@ -100,3 +100,12 @@
 #  alembic upgrade head --sql
 #    → Executes nothing. Only prints the SQL it would execute.
 #      Useful for reviewing or auditing changes before applying them.
+class c():
+    def __init__(self):
+        pass
+    
+class d():
+    def __init__(self):
+        pass
+    
+x = c(d)
