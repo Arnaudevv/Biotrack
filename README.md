@@ -220,16 +220,20 @@ Biotrack/
 ---
 
 ## 🧰 Prerequisites
-
+ 
 Before running BioTrack, make sure you have the following installed:
-
-| Tool | Minimum version | Purpose |
-|---|---|---|
-| **Python** | 3.10+ | Runtime |
-| **pip** | bundled with Python | Package installer |
-| **Docker Desktop** | latest | Runs PostgreSQL |
-| **PowerShell** | 5.1+ / PS Core 7+ | **Recommended terminal** |
-
+ 
+| Tool | Minimum version | Required for | Purpose |
+|---|---|---|---|
+| **Python** | 3.10+ | all environments | Runtime |
+| **pip** | bundled with Python | all environments | Package installer |
+| **PowerShell** | 5.1+ / PS Core 7+ | all environments | **Recommended terminal** |
+| **Docker** | latest | `production` only | Runs the Ubuntu container with PostgreSQL |
+ 
+`development` and `test` use **SQLite** — `config.py` resolves the file path automatically and creates the `.db` file inside the `data/` folder on first run. No Docker, no PostgreSQL, no extra setup needed.
+ 
+Docker is only required if you set `ENVIRONMENT=production`. In that case you need a running PostgreSQL instance reachable at the URL defined in `DB_URL_PRODUCTION`. Docker Desktop is the most common option on Windows, but Docker Engine via WSL2 works equally well.
+ 
 > **⚠️ Terminal compatibility** — the CLI is designed for **Windows PowerShell** or **PowerShell Core**.  
 > Git Bash users can launch the app with `winpty python cli_app.py`, but Rich's color rendering, box-drawing characters, and interactive prompts **will not display correctly** in that environment. Use PowerShell for the full visual experience.
 
@@ -309,7 +313,7 @@ Copy the block below, paste it into a new `.env` file at the project root, and f
 
 ```dotenv
 # ── Active environment ──────────────────────────────────────────
-# Choose one: development | testing | production
+# Choose one: development | test | production
 ENVIRONMENT=
 
 # ── SQLite (development) ────────────────────────────────────────
