@@ -57,5 +57,3 @@ if not DB_URL:
         f"Verified .env location: {ENV_PATH}\n"
         f"Active Environment: {ENVIRONMENT}\n"
     )
-
-print(f"✅ Configuration loaded: {ENVIRONMENT} -> {DB_URL}")
