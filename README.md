@@ -190,28 +190,30 @@ stack = {
 
 ```
 Biotrack/
+├── alembic/                    # Database migration scripts
+│   └── versions/
+├── data/                       # Database files (biotrack.db, biotrack_test.db)
+├── notebooks/                  # Jupyter notebooks for exploration and testing
 ├── src/
 │   └── domain/
-│       ├── models.py                         # SQLAlchemy ORM models
-│       ├── config.py                         # DB connection URL loader
-│       └── repositories/
-│           ├── base_repository.py            # Generic CRUD base class
-│           ├── unit_of_work.py               # Unit of Work pattern
+│       ├── models/             # SQLAlchemy ORM models
+│       │   ├── patient.py
+│       │   ├── sample.py
+│       │   ├── research_project.py
+│       │   └── ... (additional models)
+│       └── repositories/       # Persistence layer (Repository Pattern)
+│           ├── base_repository.py
+│           ├── unit_of_work.py
 │           ├── patient_repository.py
 │           ├── sample_repository.py
-│           ├── staff_repository.py
-│           ├── research_project_repository.py
-│           ├── protocol_repository.py
-│           └── quality_control_repository.py
-├── alembic/                                  # Database migration scripts
-│   └── versions/
-├── data/                                     # Seed / fixture data
-├── notebooks/                                # Jupyter exploration notebooks
-├── cli_app.py                                # ← Entry point (Rich terminal UI)
-├── alembic.ini                               # Alembic configuration
-├── pyproject.toml
-├── requirements.txt
-├── .env                                      # Local environment variables (not committed)
+│           └── ... (additional repositories)
+├── alembic.ini                 # Alembic configuration
+├── cli_app.py                  # Entry point (CLI application)
+├── config.py                   # Project configuration
+├── database.py                 # Database connection and management
+├── .env                        # Local environment variables
+├── pyproject.toml              # Project metadata and dependencies
+├── requirements.txt            # System dependencies
 └── README.md
 ```
 
@@ -308,50 +310,24 @@ Copy the block below, paste it into a new `.env` file at the project root, and f
 ```dotenv
 # ── Active environment ──────────────────────────────────────────
 # Choose one: development | testing | production
-ENVIRONMENT=development
+ENVIRONMENT=
 
 # ── SQLite (development) ────────────────────────────────────────
 # Filename only — config.py resolves the full path automatically.
-DB_FILENAME_DEVELOPMENT=biotrack.db
+Format: filename.db
+DB_FILENAME_DEVELOPMENT=
 
 # ── SQLite (testing) ────────────────────────────────────────────
 # Kept separate so test runs never touch development data.
-DB_FILENAME_TEST=biotrack_test.db
+# Filename only — config.py resolves the full path automatically.
+Format: filename.db
+DB_FILENAME_TEST=
 
 # ── PostgreSQL (production) ─────────────────────────────────────
 # Full connection URL. Only used when ENVIRONMENT=production.
 # Format: postgresql://user:password@host:port/database
-DB_URL_PRODUCTION=postgresql://admin:admin123@localhost:5432/biotrack
+DB_URL_PRODUCTION=
 ```
-
-### Typical setup per environment
-
-**Local development (default)**
-
-```dotenv
-ENVIRONMENT=development
-DB_FILENAME_DEVELOPMENT=biotrack.db
-```
-
-No Docker required. The SQLite file is created automatically on first run.
-
-**Running tests**
-
-```dotenv
-ENVIRONMENT=testing
-DB_FILENAME_TEST=biotrack_test.db
-```
-
-Test runs use an isolated database so they never affect development data.
-
-**Production / Docker**
-
-```dotenv
-ENVIRONMENT=production
-DB_URL_PRODUCTION=postgresql://admin:admin123@localhost:5432/biotrack
-```
-
-Make sure the Docker container is running (`docker compose up -d`) before launching the app.
 
 ---
 
