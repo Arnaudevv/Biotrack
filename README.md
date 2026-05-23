@@ -281,18 +281,77 @@ alembic upgrade head
 
 ## ⚙️ Configuration
 
-All sensitive configuration lives in a `.env` file at the project root. Create it by copying the example below and filling in your values:
+BioTrack supports **three runtime environments**, each backed by a different database engine. The active environment is controlled entirely through a `.env` file at the project root, which is read by `src/domain/config.py` via `python-dotenv`.
 
-```env
-# .env — do not commit this file
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=biotrack
-DB_USER=your_user
-DB_PASSWORD=your_password
+> **`.env` is never committed to version control.** Add it to `.gitignore` if it is not already there.
+
+### Environment reference
+
+| Variable | Required in | Description |
+|---|---|---|
+| `ENVIRONMENT` | always | Active environment: `development`, `testing`, or `production` |
+| `DB_FILENAME_DEVELOPMENT` | `development` | SQLite filename for the development database |
+| `DB_FILENAME_TEST` | `testing` | SQLite filename for the test database |
+| `DB_URL_PRODUCTION` | `production` | Full PostgreSQL connection string |
+
+### How it works
+
+`config.py` reads `ENVIRONMENT` and then picks the corresponding variable to build the SQLAlchemy database URL:
+
+- **`development` / `testing`** — uses **SQLite**. You only provide the `.db` filename (e.g. `biotrack.db`). `config.py` resolves the full file path automatically and creates or updates the database file on first run. No Docker or PostgreSQL needed.
+- **`production`** — uses **PostgreSQL**. You provide the full connection string in `DB_URL_PRODUCTION`. This is the environment intended for a Docker-hosted database.
+
+### `.env` template
+
+Copy the block below, paste it into a new `.env` file at the project root, and fill in the values that match your setup:
+
+```dotenv
+# ── Active environment ──────────────────────────────────────────
+# Choose one: development | testing | production
+ENVIRONMENT=development
+
+# ── SQLite (development) ────────────────────────────────────────
+# Filename only — config.py resolves the full path automatically.
+DB_FILENAME_DEVELOPMENT=biotrack.db
+
+# ── SQLite (testing) ────────────────────────────────────────────
+# Kept separate so test runs never touch development data.
+DB_FILENAME_TEST=biotrack_test.db
+
+# ── PostgreSQL (production) ─────────────────────────────────────
+# Full connection URL. Only used when ENVIRONMENT=production.
+# Format: postgresql://user:password@host:port/database
+DB_URL_PRODUCTION=postgresql://admin:admin123@localhost:5432/biotrack
 ```
 
-The `src/domain/config.py` module reads this file and builds the SQLAlchemy `DATABASE_URL` automatically via `python-dotenv`.
+### Typical setup per environment
+
+**Local development (default)**
+
+```dotenv
+ENVIRONMENT=development
+DB_FILENAME_DEVELOPMENT=biotrack.db
+```
+
+No Docker required. The SQLite file is created automatically on first run.
+
+**Running tests**
+
+```dotenv
+ENVIRONMENT=testing
+DB_FILENAME_TEST=biotrack_test.db
+```
+
+Test runs use an isolated database so they never affect development data.
+
+**Production / Docker**
+
+```dotenv
+ENVIRONMENT=production
+DB_URL_PRODUCTION=postgresql://admin:admin123@localhost:5432/biotrack
+```
+
+Make sure the Docker container is running (`docker compose up -d`) before launching the app.
 
 ---
 
