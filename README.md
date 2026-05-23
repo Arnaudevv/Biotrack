@@ -314,13 +314,13 @@ ENVIRONMENT=
 
 # ── SQLite (development) ────────────────────────────────────────
 # Filename only — config.py resolves the full path automatically.
-Format: filename.db
+#Format: filename.db
 DB_FILENAME_DEVELOPMENT=
 
 # ── SQLite (testing) ────────────────────────────────────────────
 # Kept separate so test runs never touch development data.
 # Filename only — config.py resolves the full path automatically.
-Format: filename.db
+#Format: filename.db
 DB_FILENAME_TEST=
 
 # ── PostgreSQL (production) ─────────────────────────────────────
