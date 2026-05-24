@@ -380,7 +380,7 @@ When you launch the app you are presented with the main menu:
  [3]  👥   Staff Manager
  [4]  🔭   Research Project Manager
  [5]  📋   Protocol Manager
- [6]  🌡️   Temperature Log Manager
+ [6]  ⚙️   Admin Utilities
  [0]  🚪   Exit
 ```
 
@@ -464,14 +464,13 @@ Option **[6] View full sample details** displays all four relationship levels in
  [0]  🔙  Back to main menu
 ```
 
-#### 🌡️ Temperature Log Manager
+#### ⚙️ Admin Utilities
 
 ```
- [1]  🌡️  List all temperature logs
- [2]  ➕  Add new reading                    (selects sample by code)
- [3]  ✏️   Update reading
- [4]  ❌  Delete reading
- [5]  🔍  Filter logs by sample code         (custom filter)
+ [1]  📦  List all containers
+ [2]  ➕  Add new Container                    (selects sample by code)
+ [3]  🧪  List all Sample Types
+ [4]  ➕  Add new Sample Type
  [0]  🔙  Back to main menu
 ```
 

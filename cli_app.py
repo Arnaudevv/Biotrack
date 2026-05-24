@@ -69,9 +69,28 @@ def show_banner(title: str):
 
 
 def press_any_key():
-    """Prompts the user to continue after an action or error."""
+    """Prompts the user to continue after an action or error.
+    Flushes any buffered stdin input (e.g. residual Enter from Confirm.ask)
+    before waiting, so the prompt never gets skipped unintentionally."""
     console.print("\n[dim]Press [bold yellow]Enter[/bold yellow] to return to the menu...[/dim]")
+    if os.name == "nt":
+        import msvcrt
+        while msvcrt.kbhit():
+            msvcrt.getch()
     input()
+
+
+def validate_required(**fields) -> bool:
+    """Checks that all named fields are non-empty strings.
+    Prints a descriptive error and returns False if any are blank.
+    Usage: if not validate_required(code=code, name=name): return
+    """
+    empty = [label for label, value in fields.items() if not str(value).strip()]
+    if empty:
+        labels = ", ".join(empty)
+        console.print(f"[bold yellow]Operation cancelled:[/bold yellow] the following fields cannot be empty: [bold white]{labels}[/bold white]")
+        return False
+    return True
 
 
 def parse_date(date_str: str) -> date:
@@ -177,6 +196,10 @@ def create_patient():
     test = Prompt.ask("[bold white]Test / Clinical Note[/bold white]", default="Routine checkup")
     active = Confirm.ask("[bold white]Is Patient Active?[/bold white]", default=True)
 
+    if not validate_required(code=code, name=name, lastname=lastname):
+        press_any_key()
+        return
+
     with uow_factory.create() as uow:
         repo = PatientRepository(uow.session)
         
@@ -255,7 +278,16 @@ def delete_patient():
             console.print(f"[bold red]Error: Patient with code '{code}' not found.[/bold red]")
             press_any_key()
             return
-            
+
+        if patient.samples:
+            console.print(
+                f"\n[bold red]Cannot delete patient '{code}'.[/bold red]\n"
+                f"[yellow]This patient has [bold]{len(patient.samples)}[/bold] sample(s) linked to them.\n"
+                f"Delete or reassign all associated samples before removing the patient.[/yellow]"
+            )
+            press_any_key()
+            return
+
         confirm = Confirm.ask(f"[bold red]Are you sure you want to permanently delete {patient.name} {patient.lastname}?[/bold red]")
         if confirm:
             repo.delete(patient)
@@ -475,6 +507,9 @@ def create_sample():
         
         # 4. Fill local fields
         code = Prompt.ask("\nSample Unique Code (e.g. SMP-001)")
+        if not validate_required(code=code):
+            press_any_key()
+            return
         if sample_repo.get_by_code(code):
             console.print(f"[bold red]Error: A sample with code '{code}' already exists.[/bold red]")
             press_any_key()
@@ -833,6 +868,10 @@ def create_staff():
         default='analyst'
     )
 
+    if not validate_required(code=code, name=name, lastname=lastname):
+        press_any_key()
+        return
+
     with uow_factory.create() as uow:
         repo = StaffRepository(uow.session)
         
@@ -1076,6 +1115,10 @@ def create_project():
         return
         
     description = Prompt.ask("[bold white]Project Description[/bold white]", default="")
+
+    if not validate_required(name=name):
+        press_any_key()
+        return
 
     with uow_factory.create() as uow:
         repo = ResearchProjectRepository(uow.session)
@@ -1361,6 +1404,10 @@ def create_protocol():
     name = Prompt.ask("[bold white]Protocol Name[/bold white]")
     description = Prompt.ask("[bold white]Protocol Description[/bold white]", default="")
     
+    if not validate_required(code=code, name=name):
+        press_any_key()
+        return
+
     with uow_factory.create() as uow:
         repo = ProtocolRepository(uow.session)
         staff_repo = StaffRepository(uow.session)
@@ -1619,6 +1666,10 @@ def create_container():
     code = Prompt.ask("Container Code (e.g. CNT-001)")
     type_name = Prompt.ask("Container Type (e.g. Cryotube 2mL)")
     
+    if not validate_required(code=code, type_name=type_name):
+        press_any_key()
+        return
+
     with uow_factory.create() as uow:
         repo = BaseRepository(uow.session, Container)
         
@@ -1666,6 +1717,10 @@ def create_sample_type():
     
     type_name = Prompt.ask("Sample Type Name (e.g. Serum, Plasma, Whole Blood)")
     
+    if not validate_required(type_name=type_name):
+        press_any_key()
+        return
+
     with uow_factory.create() as uow:
         repo = BaseRepository(uow.session, SampleType)
         
@@ -1693,9 +1748,9 @@ def main():
         console.print(Panel(
             Align.center(
                 "[bold cyan]🧬 BIOTRACK BACK OFFICE CLINICAL PORTAL 🧬[/bold cyan]\n"
-                "[italic dim]Robust Layered UI utilizing UoW & Repository Patterns[/italic dim]\n\n"
-                "[bold white]Select a Repository Module below to manage data & relationships:[/bold white]"
-            ),
+                "[italic dim]Smart platform designed for efficient and scalable clinical operations.[/italic dim]\n\n"
+                "[bold white]Select a module to manage clinical data, workflows, and system operations.[/bold white]"
+            ),  
             box=box.DOUBLE,
             style="cyan",
             expand=False
