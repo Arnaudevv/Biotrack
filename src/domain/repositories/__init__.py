@@ -8,12 +8,14 @@
 # ─────────────────────────────────────────────────────────────────
 
 from .base_repository import BaseRepository
+from .container_repository import ContainerRepository
 from .patient_repository import PatientRepository
 from .staff_repository import StaffRepository
 from .research_project_repository import ResearchProjectRepository
 
 __all__ = [
     "BaseRepository",
+    "ContainerRepository",
     "PatientRepository",
     "StaffRepository",
     "ResearchProjectRepository",

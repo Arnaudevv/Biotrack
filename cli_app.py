@@ -31,6 +31,7 @@ except ImportError:
 # Import internal domain modules
 from src.domain.config import DB_URL
 from src.domain.repositories.unit_of_work import UnitOfWorkFactory
+from src.domain.repositories.container_repository import ContainerRepository
 from src.domain.repositories.patient_repository import PatientRepository
 from src.domain.repositories.staff_repository import StaffRepository
 from src.domain.repositories.research_project_repository import ResearchProjectRepository
@@ -470,7 +471,7 @@ def create_sample():
     with uow_factory.create() as uow:
         patient_repo = PatientRepository(uow.session)
         sample_repo = SampleRepository(uow.session)
-        container_repo = BaseRepository(uow.session, Container)
+        container_repo = ContainerRepository(uow.session)
         type_repo = BaseRepository(uow.session, SampleType)
         
         # 1. Select Patient (Shows 1:N selection in UI)
@@ -1639,7 +1640,7 @@ def list_containers():
     show_banner("Containers List")
     
     with uow_factory.create() as uow:
-        repo = BaseRepository(uow.session, Container)
+        repo = ContainerRepository(uow.session)
         containers = repo.get_all()
         
         if not containers:
@@ -1671,10 +1672,10 @@ def create_container():
         return
 
     with uow_factory.create() as uow:
-        repo = BaseRepository(uow.session, Container)
+        repo = ContainerRepository(uow.session)
         
         # Check unique constraints
-        existing = uow.session.query(Container).filter((Container.code == code) | (Container.type_name == type_name)).first()
+        existing = repo.get_by_code_or_type_name(code, type_name)
         if existing:
             console.print("[bold red]Error: A container with this code or type name already exists.[/bold red]")
             press_any_key()
@@ -1757,15 +1758,24 @@ def main():
         ))
         console.print()
         
-        console.print("  [bold yellow][1][/bold yellow] 👤 Patient Manager        [dim]— [1:N] Patients ↔ Samples relationship[/dim]")
-        console.print("  [bold yellow][2][/bold yellow] 🧪 Sample Manager         [dim]— [1:1] QC, [N:M] Protocols, [N:M-Attr] Projects[/dim]")
-        console.print("  [bold yellow][3][/bold yellow] 👥 Staff Manager          [dim]— [N:M-Attr] Staff Assignments & Roles[/dim]")
-        console.print("  [bold yellow][4][/bold yellow] 📁 Research Projects      [dim]— [N:M-Attr] Samples & Project Team Graph[/dim]")
-        console.print("  [bold yellow][5][/bold yellow] 🧬 Protocol Manager       [dim]— [N:M] Protocols ↔ Samples association[/dim]")
-        console.print("  [bold yellow][6][/bold yellow] ⚙️  Admin Utilities        [dim]— Manage Containers & Sample Types[/dim]")
+        # console.print("  [bold yellow][1][/bold yellow] 👤 Patient Manager        [dim]— [1:N] Patients ↔ Samples relationship[/dim]")
+        # console.print("  [bold yellow][2][/bold yellow] 🧪 Sample Manager         [dim]— [1:1] QC, [N:M] Protocols, [N:M-Attr] Projects[/dim]")
+        # console.print("  [bold yellow][3][/bold yellow] 👥 Staff Manager          [dim]— [N:M-Attr] Staff Assignments & Roles[/dim]")
+        # console.print("  [bold yellow][4][/bold yellow] 📁 Research Projects      [dim]— [N:M-Attr] Samples & Project Team Graph[/dim]")
+        # console.print("  [bold yellow][5][/bold yellow] 🧬 Protocol Manager       [dim]— [N:M] Protocols ↔ Samples association[/dim]")
+        # console.print("  [bold yellow][6][/bold yellow] ⚙️  Admin Utilities        [dim]— Manage Containers & Sample Types[/dim]")
+        # console.print("  [bold yellow][0][/bold yellow] 🚪 Exit Application")
+        # console.print()
+
+        console.print("  [bold yellow][1][/bold yellow] 👤 Patient Manager")
+        console.print("  [bold yellow][2][/bold yellow] 🧪 Sample Manager")
+        console.print("  [bold yellow][3][/bold yellow] 👥 Staff Manager")
+        console.print("  [bold yellow][4][/bold yellow] 📁 Research Projects")
+        console.print("  [bold yellow][5][/bold yellow] 🧬 Protocol Manage")
+        console.print("  [bold yellow][6][/bold yellow] ⚙️  Admin Utilities")
         console.print("  [bold yellow][0][/bold yellow] 🚪 Exit Application")
         console.print()
-
+                
         choice = Prompt.ask("[bold yellow]Choose option[/bold yellow]", choices=["1", "2", "3", "4", "5", "6", "0"])
 
         if choice == "1":
