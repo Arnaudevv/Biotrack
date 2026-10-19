@@ -29,18 +29,18 @@ except ImportError:
     sys.exit(1)
 
 # Import internal domain modules
-from src.domain.config import DB_URL
-from src.domain.repositories.unit_of_work import UnitOfWorkFactory
-from src.domain.repositories.container_repository import ContainerRepository
-from src.domain.repositories.patient_repository import PatientRepository
-from src.domain.repositories.staff_repository import StaffRepository
-from src.domain.repositories.research_project_repository import ResearchProjectRepository
-from src.domain.repositories.sample_repository import SampleRepository
-from src.domain.repositories.protocol_repository import ProtocolRepository
-from src.domain.repositories.quality_control_repository import QualityControlRepository
-from src.domain.repositories.base_repository import BaseRepository
+from server.persistence.config import DB_URL
+from server.persistence.repositories.unit_of_work import UnitOfWorkFactory
+from server.persistence.repositories.container_repository import ContainerRepository
+from server.persistence.repositories.patient_repository import PatientRepository
+from server.persistence.repositories.staff_repository import StaffRepository
+from server.persistence.repositories.research_project_repository import ResearchProjectRepository
+from server.persistence.repositories.sample_repository import SampleRepository
+from server.persistence.repositories.protocol_repository import ProtocolRepository
+from server.persistence.repositories.quality_control_repository import QualityControlRepository
+from server.persistence.repositories.base_repository import BaseRepository
 
-from src.domain.models import (
+from server.persistence.models import (
     Patient, Staff, ResearchProject, Sample, Protocol,
     QualityControl, ProjectTeam, ResearchProjectSamples, Container, SampleType
 )

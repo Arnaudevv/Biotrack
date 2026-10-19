@@ -55,22 +55,3 @@ requires-python = ">=3.10"
 # Defines 'src' as the root directory where the 'domain' package resides.
 where = ["src"]
 
-
-
-
-# -----------------------------------------------------------------------------
-# INSTALLATION METADATA (biotrack.egg-info):
-#    Upon executing the editable installation, the 'src/biotrack.egg-info' 
-#    directory is automatically generated. This directory serves as the 
-#    technical registry of the package within the virtual environment and 
-#    contains:
-#
-#    - PKG-INFO: General metadata (name, version, description).
-#    - SOURCES.txt: An index of all files comprising the package.
-#    - dependency_links.txt: Information regarding external dependencies.
-#    - requires.txt: List of libraries required for execution.
-#    - top_level.txt: Identifies 'domain' as the root package for the system.
-#
-#    This folder is necessary for Python to maintain the active link between 
-#    the environment and the source code. It should not be manually modified.
-# -----------------------------------------------------------------------------
