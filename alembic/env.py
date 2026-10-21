@@ -5,11 +5,7 @@ from sqlalchemy import pool
 
 from alembic import context, config
 
-<<<<<<< Updated upstream
-from domain import Base, engine #Hecho en classe
-=======
 from server.persistence import Base, engine #Hecho en classe
->>>>>>> Stashed changes
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
