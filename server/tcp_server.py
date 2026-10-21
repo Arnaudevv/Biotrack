@@ -15,6 +15,38 @@ from shared.protocol import build_response, parse_request, read_http_message
 LOGGER = logging.getLogger("biotrack.server")
 
 
+def _print_incoming_request(request: dict[str, Any], peer: tuple[str, int] | None) -> None:
+    """Print a human-readable summary of the incoming request."""
+    method = request.get("method", "UNKNOWN")
+    path = request.get("path", "")
+    query = request.get("query", {})
+    headers = request.get("headers", {})
+    body = request.get("body")
+    address = f"{peer[0]}:{peer[1]}" if peer else "unknown"
+
+    print("\n" + "=" * 78, flush=True)
+    print(f"Incoming request from {address}", flush=True)
+    print(f"Method: {method}", flush=True)
+    print(f"Path: {path}", flush=True)
+    if query:
+        print("Query params:", flush=True)
+        for key, value in query.items():
+            print(f"  - {key}: {value}", flush=True)
+    else:
+        print("Query params: none", flush=True)
+    print("Headers:", flush=True)
+    for key, value in headers.items():
+        print(f"  - {key}: {value}", flush=True)
+    print("Body:", flush=True)
+    if body is None:
+        print("  - empty", flush=True)
+    elif isinstance(body, (dict, list)):
+        print(f"  {body}", flush=True)
+    else:
+        print(f"  {body}", flush=True)
+    print("=" * 78, flush=True)
+
+
 def _error_response(error: Exception) -> bytes:
     mapping = {
         BadRequestError: (400, "Bad Request"),
@@ -32,12 +64,18 @@ def _error_response(error: Exception) -> bytes:
 def handle_connection(conn: socket.socket, handler: Callable[[dict[str, Any]], Any]) -> None:
     """Handle one client request and send one HTTP-like response back."""
     conn.settimeout(READ_TIMEOUT_SECONDS)
+    peer = None
+    try:
+        peer = conn.getpeername()
+    except (AttributeError, OSError):
+        peer = None
     try:
         raw = read_http_message(conn)
         if not raw:
             conn.sendall(build_response(400, {"detail": "Empty request"}, "Bad Request"))
             return
         request = parse_request(raw)
+        _print_incoming_request(request, peer)
     except TimeoutError:
         conn.sendall(build_response(408, {"detail": "Request timeout"}, "Request Timeout"))
         return

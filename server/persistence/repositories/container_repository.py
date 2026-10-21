@@ -13,6 +13,11 @@ class ContainerRepository(BaseRepository[Container, int]):
     def __init__(self, session: Session):
         super().__init__(session, Container)
 
+    def get_by_code(self, code: str) -> Optional[Container]:
+        """Find a container by its unique code."""
+        stmt = select(Container).where(Container.code == code)
+        return self.session.scalar(stmt)
+
     def get_by_code_or_type_name(
         self, code: str, type_name: str
     ) -> Optional[Container]:
