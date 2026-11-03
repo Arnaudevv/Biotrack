@@ -62,6 +62,7 @@ class PatientController:
             "active": dto.active,
             "test": dto.test,
             "registration_date": dto.registration_date.isoformat() if dto.registration_date else None,
+            "last_update": dto.last_update.isoformat() if dto.last_update else None,
         }
 
     def _sample_to_payload(self, dto) -> dict[str, Any]:

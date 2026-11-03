@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
@@ -36,6 +36,12 @@ class PatientService:
             raise NotFoundError(f"Patient '{code}' not found")
         return self._to_dto(patient)
 
+    def list_samples_for_patient(self, code: str) -> list:
+        patient = self.patient_repository.get_by_code(code)
+        if patient is None:
+            raise NotFoundError(f"Patient '{code}' not found")
+        return [self._sample_to_dto(sample) for sample in self.sample_repository.get_by_patient_code(code)]
+
     def create_patient(self, payload: dict[str, Any]) -> PatientDTO:
         dto = self._validate_create(payload)
         if self.patient_repository.get_by_code(dto.code) is not None:
@@ -58,8 +64,12 @@ class PatientService:
                 if field == "birth_date":
                     setattr(patient, field, self._parse_date(value, field))
                 elif field == "active":
-                    setattr(patient, field, bool(value))
+                    if not isinstance(value, bool):
+                        raise ServiceValidationError("Active must be a boolean")
+                    setattr(patient, field, value)
                 else:
+                    if not isinstance(value, str) or not value.strip():
+                        raise ServiceValidationError(f"{field} must be a non-empty string")
                     setattr(patient, field, value)
         try:
             self.uow.session.flush()
@@ -85,6 +95,7 @@ class PatientService:
             active=bool(patient.active),
             test=patient.test,
             registration_date=patient.registration_date,
+            last_update=patient.last_update,
         )
 
     def _dto_to_model(self, dto: PatientDTO):
@@ -96,6 +107,20 @@ class PatientService:
             birth_date=dto.birth_date,
             active=dto.active,
             test=dto.test,
+        )
+
+    def _sample_to_dto(self, sample):
+        from shared.dtos import SampleDTO
+        return SampleDTO(
+            id=sample.id,
+            code=sample.code,
+            volume=Decimal(str(sample.volume)),
+            extraction_date=sample.extraction_date,
+            status=sample.status,
+            patient_code=code if (code := getattr(sample.patient, "code", None)) else None,
+            sample_type=sample.sample_type.type_name if getattr(sample, "sample_type", None) else None,
+            container_code=sample.container.code if getattr(sample, "container", None) else None,
+            last_update=sample.last_update,
         )
 
     def _validate_create(self, payload: dict[str, Any]) -> PatientDTO:
@@ -111,6 +136,8 @@ class PatientService:
         if not isinstance(payload["name"], str) or not isinstance(payload["lastname"], str):
             raise ServiceValidationError("Name and lastname must be strings")
         birth_date = self._parse_date(payload["birth_date"], "birth_date")
+        if birth_date > date.today():
+            raise ServiceValidationError("Birth date cannot be in the future")
         test = payload.get("test", "Routine checkup")
         if not isinstance(test, str):
             raise ServiceValidationError("Test must be a string")
@@ -135,6 +162,3 @@ class PatientService:
             except ValueError as exc:
                 raise ServiceValidationError(f"Invalid {field_name}: {value}") from exc
         raise ServiceValidationError(f"Invalid {field_name}: {value}")
-
-
-from datetime import datetime

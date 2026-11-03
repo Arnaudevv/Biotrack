@@ -43,6 +43,7 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
     """Build the application router with all documented endpoints."""
     routes: list[tuple[str, str, Callable[..., Any]]] = []
     uow_factory = UnitOfWorkFactory(DB_URL)
+    active_uow = None
 
     def register(method: str, path: str, handler: Callable[..., Any]) -> None:
         routes.append((method.upper(), path, handler))
@@ -51,31 +52,45 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
         return {"message": "pong"}
 
     def make_patient_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return PatientController(PatientService(uow))
 
     def make_staff_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return StaffController(StaffService(uow))
 
     def make_container_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return ContainerController(ContainerService(uow))
 
     def make_sample_type_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return SampleTypeController(SampleTypeService(uow))
 
     def make_sample_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return SampleController(SampleService(uow))
 
     def make_project_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return ProjectController(ProjectService(uow))
 
     def make_protocol_controller():
+        nonlocal active_uow
         uow = uow_factory.create()
+        active_uow = uow
         return ProtocolController(ProtocolService(uow))
 
     def patient_list_handler(request: dict[str, Any], params: dict[str, str]):
@@ -114,6 +129,10 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
         controller = make_sample_controller()
         return controller.get_full_sample(request, params)
 
+    def project_details_handler(request: dict[str, Any], params: dict[str, str]):
+        controller = make_project_controller()
+        return controller.get_project_details(request, params)
+
     def sample_create_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_sample_controller()
         return controller.create_sample(request)
@@ -134,9 +153,41 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
         controller = make_sample_controller()
         return controller.set_quality_control(request, params)
 
+    def sample_quality_control_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        controller = make_sample_controller()
+        return controller.delete_quality_control(request, params)
+
     def sample_protocol_post_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_sample_controller()
         return controller.apply_protocol(request, params)
+
+    def sample_protocol_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        controller = make_sample_controller()
+        return controller.remove_protocol(request, params)
+
+    def container_get_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_container_controller().get_container(request, params)
+
+    def container_update_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_container_controller().update_container(request, params)
+
+    def container_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_container_controller().delete_container(request, params)
+
+    def container_samples_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_controller().list_container_samples(request, params)
+
+    def sample_type_get_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_type_controller().get_sample_type(request, params)
+
+    def sample_type_update_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_type_controller().update_sample_type(request, params)
+
+    def sample_type_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_type_controller().delete_sample_type(request, params)
+
+    def sample_type_samples_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_controller().list_type_samples(request, params)
 
     def staff_list_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_staff_controller()
@@ -161,6 +212,9 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
     def staff_assignments_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_staff_controller()
         return controller.list_assignments(request, params)
+
+    def staff_protocols_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_staff_controller().list_protocols(request, params)
 
     def project_list_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_project_controller()
@@ -190,6 +244,24 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
         controller = make_project_controller()
         return controller.add_team_member(request, params)
 
+    def project_samples_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().list_samples(request, params)
+
+    def project_sample_update_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().update_sample(request, params)
+
+    def project_sample_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().unlink_sample(request, params)
+
+    def project_team_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().list_team(request, params)
+
+    def project_team_update_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().update_team_member(request, params)
+
+    def project_team_delete_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_project_controller().remove_team_member(request, params)
+
     def protocol_list_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_protocol_controller()
         return controller.list_protocols(request)
@@ -213,6 +285,12 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
     def protocol_samples_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_protocol_controller()
         return controller.list_samples(request, params)
+
+    def protocol_staff_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_staff_controller().list_protocols(request, params)
+
+    def protocol_sample_handler(request: dict[str, Any], params: dict[str, str]):
+        return make_sample_controller().list_protocol_samples(request, params)
 
     def container_list_handler(request: dict[str, Any], params: dict[str, str]):
         controller = make_container_controller()
@@ -245,32 +323,52 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
     register("DELETE", "/samples/{code}", sample_delete_handler)
     register("GET", "/samples/{code}/quality-control", sample_quality_control_get_handler)
     register("PUT", "/samples/{code}/quality-control", sample_quality_control_put_handler)
+    register("DELETE", "/samples/{code}/quality-control", sample_quality_control_delete_handler)
     register("POST", "/samples/{code}/protocols", sample_protocol_post_handler)
+    register("DELETE", "/samples/{code}/protocols/{protocol_code}", sample_protocol_delete_handler)
     register("GET", "/staff", staff_list_handler)
     register("POST", "/staff", staff_create_handler)
     register("GET", "/staff/{code}", staff_get_handler)
     register("PATCH", "/staff/{code}", staff_update_handler)
     register("DELETE", "/staff/{code}", staff_delete_handler)
     register("GET", "/staff/{code}/assignments", staff_assignments_handler)
+    register("GET", "/staff/{code}/protocols", staff_protocols_handler)
     register("GET", "/projects", project_list_handler)
     register("POST", "/projects", project_create_handler)
     register("GET", "/projects/{id}", project_get_handler)
+    register("GET", "/projects/{id}/details", project_details_handler)
     register("PATCH", "/projects/{id}", project_update_handler)
     register("DELETE", "/projects/{id}", project_delete_handler)
     register("POST", "/projects/{id}/samples", project_link_sample_handler)
+    register("GET", "/projects/{id}/samples", project_samples_handler)
+    register("PATCH", "/projects/{id}/samples/{sample_code}", project_sample_update_handler)
+    register("DELETE", "/projects/{id}/samples/{sample_code}", project_sample_delete_handler)
     register("POST", "/projects/{id}/team", project_add_team_handler)
+    register("GET", "/projects/{id}/team", project_team_handler)
+    register("PATCH", "/projects/{id}/team/{staff_code}", project_team_update_handler)
+    register("DELETE", "/projects/{id}/team/{staff_code}", project_team_delete_handler)
     register("GET", "/protocols", protocol_list_handler)
     register("POST", "/protocols", protocol_create_handler)
     register("GET", "/protocols/{code}", protocol_get_handler)
     register("PATCH", "/protocols/{code}", protocol_update_handler)
     register("DELETE", "/protocols/{code}", protocol_delete_handler)
     register("GET", "/protocols/{code}/samples", protocol_samples_handler)
+    register("GET", "/protocols/{code}/staff", protocol_staff_handler)
     register("GET", "/containers", container_list_handler)
     register("POST", "/containers", container_create_handler)
+    register("GET", "/containers/{code}", container_get_handler)
+    register("PATCH", "/containers/{code}", container_update_handler)
+    register("DELETE", "/containers/{code}", container_delete_handler)
+    register("GET", "/containers/{code}/samples", container_samples_handler)
     register("GET", "/sample-types", sample_type_list_handler)
     register("POST", "/sample-types", sample_type_create_handler)
+    register("GET", "/sample-types/{type_name}", sample_type_get_handler)
+    register("PATCH", "/sample-types/{type_name}", sample_type_update_handler)
+    register("DELETE", "/sample-types/{type_name}", sample_type_delete_handler)
+    register("GET", "/sample-types/{type_name}/samples", sample_type_samples_handler)
 
     def router(request: dict[str, Any]) -> dict[str, Any] | list | None:
+        nonlocal active_uow
         method = request.get("method", "GET").upper()
         path = request.get("path", "/")
         params: dict[str, str] | None = None
@@ -295,8 +393,23 @@ def build_router() -> Callable[[dict[str, Any]], dict[str, Any] | list | None]:
 
         handler = matched[2]
         try:
-            return handler(request, params or {})
+            result = handler(request, params or {})
+            if active_uow is not None:
+                active_uow.commit()
+                active_uow.session.close()
+                active_uow = None
+            return result
         except (NotFoundError, ConflictError, ServiceValidationError) as exc:
+            if active_uow is not None:
+                active_uow.rollback()
+                active_uow.session.close()
+                active_uow = None
             raise exc
+        except Exception:
+            if active_uow is not None:
+                active_uow.rollback()
+                active_uow.session.close()
+                active_uow = None
+            raise
 
     return router

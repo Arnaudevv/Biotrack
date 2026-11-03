@@ -1,0 +1,61 @@
+{
+  "patients": [
+    "list_patients",
+    "create_patient",
+    "update_patient",
+    "delete_patient",
+    "search_patient",
+    "list_patients",
+    "view_patient_samples"
+  ],
+  "samples": [
+    "list_samples",
+    "create_sample",
+    "update_sample",
+    "delete_sample",
+    "search_sample",
+    "view_full_sample",
+    "filter_samples_status",
+    "filter_samples_date",
+    "manage_quality_control",
+    "apply_protocol"
+  ],
+  "staff": [
+    "list_staff",
+    "create_staff",
+    "update_staff",
+    "delete_staff",
+    "search_staff",
+    "assign_staff",
+    "view_staff_assignments",
+    "view_staff_protocols"
+  ],
+  "projects": [
+    "list_projects",
+    "create_project",
+    "update_project",
+    "delete_project",
+    "search_project",
+    "link_sample",
+    "view_project_details",
+    "manage_project_relations"
+  ],
+  "protocols": [
+    "list_protocols",
+    "create_protocol",
+    "update_protocol",
+    "delete_protocol",
+    "search_protocol",
+    "apply_protocol",
+    "view_protocol_details",
+    "remove_protocol"
+  ],
+  "administration": [
+    "list_containers",
+    "create_container",
+    "list_sample_types",
+    "create_sample_type",
+    "manage_container",
+    "manage_sample_type"
+  ]
+}

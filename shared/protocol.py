@@ -64,8 +64,7 @@ def _coerce_json(value):
     return value
 
 
-def build_request(method: str, path: str, body: dict | None = None,
-                  host: str = DEFAULT_HOST) -> bytes:
+def build_request(method: str, path: str, body: dict | None = None, host: str = DEFAULT_HOST) -> bytes:
     """Build an HTTP-like request following docs/protocol.md."""
     if method.upper() not in SUPPORTED_METHODS:
         raise ValueError(f"Unsupported HTTP method: {method}")
@@ -231,7 +230,7 @@ def parse_response(raw: bytes) -> dict[str, Any]:
 
 
 def read_http_message(sock: socket.socket, max_headers: int = MAX_START_LINE_AND_HEADERS,
-                     max_body: int = MAX_BODY_SIZE) -> bytes:
+    max_body: int = MAX_BODY_SIZE) -> bytes:
     """Read one HTTP message from a socket-like object."""
     buffer = bytearray()
     while b"\r\n\r\n" not in buffer:

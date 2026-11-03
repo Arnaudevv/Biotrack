@@ -19,6 +19,9 @@ class StaffController:
     def list_assignments(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
         return self.service.list_assignments(params["code"])
 
+    def list_protocols(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
+        return [self._protocol_to_payload(item) for item in self.service.list_protocols(params["code"])]
+
     def get_staff(self, request: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
         return self._to_payload(self.service.get_staff(params["code"]))
 
@@ -51,4 +54,15 @@ class StaffController:
             "lastname": dto.lastname,
             "role": dto.role,
             "active": dto.active,
+            "last_update": dto.last_update.isoformat() if dto.last_update else None,
+        }
+
+    def _protocol_to_payload(self, dto) -> dict[str, Any]:
+        return {
+            "id": dto.id,
+            "code": dto.code,
+            "name": dto.name,
+            "description": dto.description,
+            "reviewed_by": dto.reviewed_by,
+            "last_update": dto.last_update.isoformat() if dto.last_update else None,
         }

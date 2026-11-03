@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from server.persistence.repositories.sample_type_repository import SampleTypeRepository
+from server.persistence.repositories.sample_repository import SampleRepository
 from server.persistence.repositories.unit_of_work import AbstractUnitOfWork
 from shared.dtos import SampleTypeDTO
 from shared.errors import ConflictError, NotFoundError, ServiceValidationError
@@ -16,6 +17,7 @@ class SampleTypeService:
     def __init__(self, uow: AbstractUnitOfWork):
         self.uow = uow
         self.sample_type_repository = SampleTypeRepository(uow.session)
+        self.sample_repository = SampleRepository(uow.session)
 
     def list_sample_types(self) -> list[SampleTypeDTO]:
         return [self._to_dto(record) for record in self.sample_type_repository.get_all()]
@@ -43,6 +45,11 @@ class SampleTypeService:
         if sample_type is None:
             raise NotFoundError(f"Sample type '{type_name}' not found")
         if "type_name" in payload:
+            if not isinstance(payload["type_name"], str) or not payload["type_name"].strip():
+                raise ServiceValidationError("Type name must be a non-empty string")
+            existing = self.sample_type_repository.get_by_name(payload["type_name"])
+            if existing is not None and existing.id != sample_type.id:
+                raise ConflictError(f"Sample type '{payload['type_name']}' already exists")
             sample_type.type_name = payload["type_name"]
         try:
             self.uow.session.flush()
@@ -54,6 +61,8 @@ class SampleTypeService:
         sample_type = self.sample_type_repository.get_by_name(type_name)
         if sample_type is None:
             raise NotFoundError(f"Sample type '{type_name}' not found")
+        if self.sample_repository.get_by_sample_type(type_name):
+            raise ConflictError(f"Sample type '{type_name}' still has samples")
         self.uow.session.delete(sample_type)
 
     def _validate_create(self, payload: dict[str, Any]) -> SampleTypeDTO:

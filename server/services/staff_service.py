@@ -6,7 +6,7 @@ from typing import Any
 
 from server.persistence.repositories.staff_repository import StaffRepository
 from server.persistence.repositories.unit_of_work import AbstractUnitOfWork
-from shared.dtos import StaffDTO
+from shared.dtos import ProtocolDTO, StaffDTO
 from shared.errors import ConflictError, NotFoundError, ServiceValidationError
 
 
@@ -40,6 +40,11 @@ class StaffService:
             })
         return payload
 
+    def list_protocols(self, code: str) -> list[ProtocolDTO]:
+        if self.staff_repository.get_by_code(code) is None:
+            raise NotFoundError(f"Staff '{code}' not found")
+        return [self._protocol_to_dto(protocol) for protocol in self.staff_repository.get_protocols_reviewed(code)]
+
     def create_staff(self, payload: dict[str, Any]) -> StaffDTO:
         dto = self._validate_create(payload)
         if self.staff_repository.get_by_code(dto.code) is not None:
@@ -56,14 +61,22 @@ class StaffService:
         staff = self.staff_repository.get_by_code(code)
         if staff is None:
             raise NotFoundError(f"Staff '{code}' not found")
-        for field in ("name", "lastname", "role"):
+        for field in ("name", "lastname", "role", "active"):
             if field in payload:
                 value = payload[field]
                 if field == "role":
+                    if not isinstance(value, str):
+                        raise ServiceValidationError("Role must be a string")
                     role = value.strip().lower()
                     self._validate_role(role)
                     setattr(staff, field, role)
+                elif field == "active":
+                    if not isinstance(value, bool):
+                        raise ServiceValidationError("Active must be a boolean")
+                    setattr(staff, field, value)
                 else:
+                    if not isinstance(value, str) or not value.strip():
+                        raise ServiceValidationError(f"{field} must be a non-empty string")
                     setattr(staff, field, value)
         try:
             self.uow.session.flush()
@@ -111,6 +124,16 @@ class StaffService:
             active=dto.active,
         )
 
+    def _protocol_to_dto(self, protocol) -> ProtocolDTO:
+        return ProtocolDTO(
+            id=protocol.id,
+            code=protocol.code,
+            name=protocol.name,
+            description=protocol.description,
+            reviewed_by=protocol.reviewer.code if getattr(protocol, "reviewer", None) else None,
+            last_update=protocol.last_update,
+        )
+
     def _to_dto(self, staff) -> StaffDTO:
         return StaffDTO(
             id=staff.id,
@@ -119,4 +142,5 @@ class StaffService:
             lastname=staff.lastname,
             role=staff.role,
             active=bool(staff.active),
+            last_update=staff.last_update,
         )

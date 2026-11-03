@@ -48,6 +48,11 @@ class ProtocolService:
             "container_code": sample.container.code if getattr(sample, "container", None) else None,
         } for sample in protocol.samples]
 
+    def list_protocols_for_staff(self, staff_code: str) -> list[ProtocolDTO]:
+        if self.staff_repository.get_by_code(staff_code) is None:
+            raise NotFoundError(f"Staff '{staff_code}' not found")
+        return [self._to_dto(item) for item in self.staff_repository.get_protocols_reviewed(staff_code)]
+
     def create_protocol(self, payload: dict[str, Any]) -> ProtocolDTO:
         dto = self._validate_create(payload)
         if self.protocol_repository.get_by_code(dto.code) is not None:
@@ -56,6 +61,8 @@ class ProtocolService:
             reviewer = self.staff_repository.get_by_code(dto.reviewed_by)
             if reviewer is None:
                 raise NotFoundError(f"Staff '{dto.reviewed_by}' not found")
+            if not reviewer.active:
+                raise ServiceValidationError(f"Reviewer '{dto.reviewed_by}' is inactive")
         protocol = self._dto_to_model(dto)
         self.uow.session.add(protocol)
         try:
@@ -69,6 +76,8 @@ class ProtocolService:
         if protocol is None:
             raise NotFoundError(f"Protocol '{code}' not found")
         if "name" in payload:
+            if not isinstance(payload["name"], str) or not payload["name"].strip():
+                raise ServiceValidationError("Name must be a non-empty string")
             protocol.name = payload["name"]
         if "description" in payload:
             protocol.description = payload["description"]
@@ -80,6 +89,8 @@ class ProtocolService:
                 reviewer = self.staff_repository.get_by_code(reviewer_code)
                 if reviewer is None:
                     raise NotFoundError(f"Staff '{reviewer_code}' not found")
+                if not reviewer.active:
+                    raise ServiceValidationError(f"Reviewer '{reviewer_code}' is inactive")
                 protocol.reviewed_by_id = reviewer.id
         try:
             self.uow.session.flush()

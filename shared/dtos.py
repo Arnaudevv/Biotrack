@@ -76,6 +76,7 @@ class PatientDTO:
     active: bool = True
     test: str = "Routine checkup"
     registration_date: Optional[datetime] = None
+    last_update: Optional[datetime] = None
 
 
 @dataclass
@@ -88,6 +89,7 @@ class SampleDTO:
     patient_code: Optional[str] = None
     sample_type: Optional[str] = None
     container_code: Optional[str] = None
+    last_update: Optional[datetime] = None
 
 
 @dataclass
@@ -98,6 +100,7 @@ class StaffDTO:
     lastname: Optional[str] = None
     role: Optional[str] = None
     active: bool = True
+    last_update: Optional[datetime] = None
 
 
 @dataclass
@@ -106,6 +109,7 @@ class ProjectDTO:
     project_name: Optional[str] = None
     start_date: Optional[date] = None
     description: Optional[str] = None
+    last_update: Optional[datetime] = None
 
 
 @dataclass

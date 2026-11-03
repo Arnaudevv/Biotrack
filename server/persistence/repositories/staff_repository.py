@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 # Internal - models
-from ..models import Staff, ResearchProject, ProjectTeam
+from ..models import Staff, ResearchProject, ProjectTeam, Protocol
 
 # Internal - repositories
 from .base_repository import BaseRepository
@@ -75,3 +75,19 @@ class StaffRepository(BaseRepository[Staff, int]):
         )
 
         return list(self.session.scalars(stmt).all())
+
+    def get_protocols_reviewed(self, code: str) -> list[Protocol]:
+        stmt = (
+            select(Protocol)
+            .join(Staff, Staff.id == Protocol.reviewed_by_id)
+            .where(Staff.code == code)
+        )
+        return list(self.session.scalars(stmt).all())
+
+    def get_team_assignment(self, staff_code: str, project_id: int) -> Optional[ProjectTeam]:
+        stmt = (
+            select(ProjectTeam)
+            .join(Staff, Staff.id == ProjectTeam.id_staff)
+            .where(Staff.code == staff_code, ProjectTeam.id_project == project_id)
+        )
+        return self.session.scalar(stmt)

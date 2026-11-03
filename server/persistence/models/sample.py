@@ -53,9 +53,13 @@ class Sample(Base):
     id_container: Mapped[int] = mapped_column(ForeignKey("container.id"), nullable=False)
     container: Mapped["Container"] = relationship(back_populates="samples")
     # log_temperatures relationship
-    log_temperatures: Mapped[list["LogTemperature"]] = relationship(back_populates="sample")
+    log_temperatures: Mapped[list["LogTemperature"]] = relationship(
+        back_populates="sample", cascade="all, delete-orphan"
+    )
     # quality_control relationship
-    quality_control: Mapped["QualityControl"] = relationship(back_populates="sample", uselist=False)
+    quality_control: Mapped["QualityControl"] = relationship(
+        back_populates="sample", uselist=False, cascade="all, delete-orphan"
+    )
     # sample_protocol relationship
     protocols: Mapped[list["Protocol"]] = relationship(secondary="sample_protocol", back_populates="samples")
     # research_project_samples relationship

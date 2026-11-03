@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select
 
 # Internal - models
-from ..models import Sample, Patient, SampleType, Container
+from ..models import Sample, Patient, SampleType, Container, Protocol, ResearchProject
 
 # Internal - repositories
 from .base_repository import BaseRepository
@@ -117,6 +117,24 @@ class SampleRepository(BaseRepository[Sample, int]):
             select(Sample)
             .join(SampleType, SampleType.id == Sample.id_sample_type)
             .where(SampleType.type_name == type_name)
+        )
+        return list(self.session.scalars(stmt).all())
+
+    def get_by_protocol_code(self, protocol_code: str) -> list[Sample]:
+        stmt = (
+            select(Sample)
+            .join(Sample.protocols)
+            .where(Protocol.code == protocol_code)
+            .order_by(Sample.extraction_date)
+        )
+        return list(self.session.scalars(stmt).all())
+
+    def get_by_project_id(self, project_id: int) -> list[Sample]:
+        stmt = (
+            select(Sample)
+            .join(Sample.research_projects)
+            .where(ResearchProject.id == project_id)
+            .order_by(Sample.extraction_date)
         )
         return list(self.session.scalars(stmt).all())
 

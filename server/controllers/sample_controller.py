@@ -16,6 +16,10 @@ class SampleController:
     def list_samples(self, request: dict[str, Any]) -> list[dict[str, Any]]:
         query = request.get("query", {})
         status = query.get("status")
+        start = query.get("start_date")
+        end = query.get("end_date")
+        if start or end:
+            return [self._to_payload(item) for item in self.service.list_samples_by_date(start, end)]
         return [self._to_payload(item) for item in self.service.list_samples(status)]
 
     def get_sample(self, request: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
@@ -33,6 +37,9 @@ class SampleController:
             raise BadRequestError("Request body must be a JSON object")
         return self.service.set_quality_control(params["code"], payload)
 
+    def delete_quality_control(self, request: dict[str, Any], params: dict[str, str]) -> None:
+        self.service.delete_quality_control(params["code"])
+
     def apply_protocol(self, request: dict[str, Any], params: dict[str, str]) -> dict[str, Any]:
         payload = request.get("body") or {}
         if not isinstance(payload, dict):
@@ -41,6 +48,21 @@ class SampleController:
         if not protocol_code:
             raise BadRequestError("Missing required field: protocol_code")
         return self.service.apply_protocol(params["code"], protocol_code)
+
+    def remove_protocol(self, request: dict[str, Any], params: dict[str, str]) -> None:
+        self.service.remove_protocol(params["code"], params["protocol_code"])
+
+    def list_container_samples(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
+        return [self._to_payload(item) for item in self.service.list_samples_for_container(params["code"])]
+
+    def list_type_samples(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
+        return [self._to_payload(item) for item in self.service.list_samples_for_type(params["type_name"])]
+
+    def list_protocol_samples(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
+        return [self._to_payload(item) for item in self.service.list_samples_for_protocol(params["code"])]
+
+    def list_project_samples(self, request: dict[str, Any], params: dict[str, str]) -> list[dict[str, Any]]:
+        return [self._to_payload(item) for item in self.service.list_samples_for_project(int(params["id"]))]
 
     def create_sample(self, request: dict[str, Any]) -> dict[str, Any]:
         payload = request.get("body") or {}
@@ -73,4 +95,5 @@ class SampleController:
             "patient_code": dto.patient_code,
             "sample_type": dto.sample_type,
             "container_code": dto.container_code,
+            "last_update": dto.last_update.isoformat() if dto.last_update else None,
         }

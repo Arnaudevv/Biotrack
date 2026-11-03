@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from server.persistence.repositories.container_repository import ContainerRepository
+from server.persistence.repositories.sample_repository import SampleRepository
 from server.persistence.repositories.unit_of_work import AbstractUnitOfWork
 from shared.dtos import ContainerDTO
 from shared.errors import ConflictError, NotFoundError, ServiceValidationError
@@ -16,6 +17,7 @@ class ContainerService:
     def __init__(self, uow: AbstractUnitOfWork):
         self.uow = uow
         self.container_repository = ContainerRepository(uow.session)
+        self.sample_repository = SampleRepository(uow.session)
 
     def list_containers(self) -> list[ContainerDTO]:
         return [self._to_dto(record) for record in self.container_repository.get_all()]
@@ -43,6 +45,10 @@ class ContainerService:
         if container is None:
             raise NotFoundError(f"Container '{code}' not found")
         if "type_name" in payload:
+            if not isinstance(payload["type_name"], str) or not payload["type_name"].strip():
+                raise ServiceValidationError("Type name must be a non-empty string")
+            if self.container_repository.get_by_code_or_type_name(container.code, payload["type_name"]) not in (None, container):
+                raise ConflictError(f"Container type '{payload['type_name']}' already exists")
             container.type_name = payload["type_name"]
         try:
             self.uow.session.flush()
@@ -54,6 +60,8 @@ class ContainerService:
         container = self.container_repository.get_by_code(code)
         if container is None:
             raise NotFoundError(f"Container '{code}' not found")
+        if self.sample_repository.get_by_container_code(code):
+            raise ConflictError(f"Container '{code}' still has samples")
         self.uow.session.delete(container)
 
     def _validate_create(self, payload: dict[str, Any]) -> ContainerDTO:
